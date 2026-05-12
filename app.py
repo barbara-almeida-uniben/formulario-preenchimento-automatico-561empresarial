@@ -29,11 +29,21 @@ clientes = pd.read_csv(
     dtype=str
 ).fillna("")
 
+clientes.columns = clientes.columns.str.strip()
+
 unimeds = pd.read_csv(
     url_unimed,
     dtype=str
 ).fillna("")
 
+unimeds.columns = unimeds.columns.str.strip()
+
+for coluna in clientes.columns:
+    clientes[coluna] = clientes[coluna].astype(str).str.strip()
+
+for coluna in unimeds.columns:
+    unimeds[coluna] = unimeds[coluna].astype(str).str.strip()
+    
 # =====================================================
 # MOTIVOS
 # =====================================================
