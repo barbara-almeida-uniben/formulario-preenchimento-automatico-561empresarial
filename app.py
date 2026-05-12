@@ -95,9 +95,6 @@ if st.button("Gerar PDF"):
 
     row = cliente.iloc[0]
 
-    st.write("Instituição:", row['INSTITUICAO'])
-    st.write("CNPJ Instituição:", row['CNPJ_INSTITUICAO'])
-
     # =================================================
     # BUSCAR DEPENDENTES ATIVOS
     # =================================================
