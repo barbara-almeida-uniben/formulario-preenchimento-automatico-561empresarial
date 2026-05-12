@@ -19,17 +19,18 @@ st.title("Gerador de Formulário Cancelamento 561 - Empresarial")
 # LER PLANILHAS
 # =====================================================
 
-url_excel = "https://docs.google.com/spreadsheets/d/1LjkHRoSQElthQYiyMzv8vjAtuJDhx6yQ/export?format=xlsx"
+base_id = "1LjkHRoSQElthQYiyMzv8vjAtuJDhx6yQ"
 
-clientes = pd.read_excel(
-    url_excel,
-    sheet_name="Beneficiarios",
+url_beneficiarios = f"https://docs.google.com/spreadsheets/d/{base_id}/gviz/tq?tqx=out:csv&sheet=Beneficiarios"
+url_unimed = f"https://docs.google.com/spreadsheets/d/{base_id}/gviz/tq?tqx=out:csv&sheet=Unimed"
+
+clientes = pd.read_csv(
+    url_beneficiarios,
     dtype=str
 ).fillna("")
 
-unimeds = pd.read_excel(
-    url_excel,
-    sheet_name="Unimed",
+unimeds = pd.read_csv(
+    url_unimed,
     dtype=str
 ).fillna("")
 
