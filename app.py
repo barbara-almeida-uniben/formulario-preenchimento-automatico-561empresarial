@@ -98,17 +98,23 @@ if st.button("Gerar PDF"):
     # BUSCAR UNIMED
     # =================================================
 
-    nome_unimed = row['OPERADORA'].strip().upper()
+    nome_unimed = str(row['OPERADORA']).strip().upper()
 
-    unimeds['Unimed'] = unimeds['Unimed'].str.strip().str.upper()
+    unimeds['Unimed'] = (
+        unimeds['Unimed']
+        .astype(str)
+        .str.strip()
+        .str.upper()
+    )
 
     unimed = unimeds[
-        unimeds['Unimed'] == nome_unimed
+        unimeds['Unimed'].str.contains(nome_unimed, na=False, regex=False)
     ]
 
     if unimed.empty:
-
         st.error("Unimed não encontrada.")
+        st.write("Nome buscado:", nome_unimed)
+        st.write("Unimeds cadastradas:", unimeds['Unimed'].tolist())
         st.stop()
 
     unimed_row = unimed.iloc[0]
