@@ -19,7 +19,7 @@ st.title("Gerador de Formulário Unimed")
 # LER PLANILHAS
 # =====================================================
 
-url_excel = "https://unibensaude-my.sharepoint.com/:x:/g/personal/barbara_almeida_unibensaude_com_br/IQDMN4LGgZFfR5IcOGVBRlOlAZdncjzB0zP5Lhz30b9tc_w?download=1"
+url_excel = "https://docs.google.com/spreadsheets/d/12HYzSaLVEJpbBhsN7HXCQK4CrHmWO3CB/export?format=xlsx"
 
 clientes = pd.read_excel(
     url_excel,
