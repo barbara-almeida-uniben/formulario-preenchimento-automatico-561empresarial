@@ -19,14 +19,16 @@ st.title("Gerador de Formulário Unimed")
 # LER PLANILHAS
 # =====================================================
 
+url_excel = "https://unibensaude-my.sharepoint.com/:x:/g/personal/barbara_almeida_unibensaude_com_br/IQDMN4LGgZFfR5IcOGVBRlOlAZdncjzB0zP5Lhz30b9tc_w?download=1"
+
 clientes = pd.read_excel(
-    "dados.xlsx",
+    url_excel,
     sheet_name="Beneficiarios",
     dtype=str
 ).fillna("")
 
 unimeds = pd.read_excel(
-    "dados.xlsx",
+    url_excel,
     sheet_name="Unimed",
     dtype=str
 ).fillna("")
