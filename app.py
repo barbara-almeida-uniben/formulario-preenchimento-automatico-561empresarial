@@ -43,7 +43,7 @@ for coluna in clientes.columns:
 
 for coluna in unimeds.columns:
     unimeds[coluna] = unimeds[coluna].astype(str).str.strip()
-    
+
 # =====================================================
 # MOTIVOS
 # =====================================================
@@ -112,23 +112,43 @@ if st.button("Gerar PDF"):
     # BUSCAR UNIMED
     # =================================================
 
+    # =================================================
+    # BUSCAR UNIMED
+    # =================================================
+
+    # Normalizar nomes das colunas
+    unimeds.columns = unimeds.columns.astype(str).str.strip()
+
+    # Encontrar automaticamente a coluna da Unimed
+    coluna_unimed = None
+
+    for col in unimeds.columns:
+        if col.strip().upper() == "UNIMED":
+            coluna_unimed = col
+            break
+
+    if coluna_unimed is None:
+        st.error("Coluna 'Unimed' não encontrada na aba Unimed.")
+        st.write("Colunas encontradas:", unimeds.columns.tolist())
+        st.stop()
+
     nome_unimed = str(row['OPERADORA']).strip().upper()
 
-    unimeds['Unimed'] = (
-        unimeds['Unimed']
+    unimeds[coluna_unimed] = (
+        unimeds[coluna_unimed]
         .astype(str)
         .str.strip()
         .str.upper()
     )
 
     unimed = unimeds[
-        unimeds['Unimed'].str.contains(nome_unimed, na=False, regex=False)
+        unimeds[coluna_unimed].str.contains(nome_unimed, na=False, regex=False)
     ]
 
     if unimed.empty:
         st.error("Unimed não encontrada.")
         st.write("Nome buscado:", nome_unimed)
-        st.write("Unimeds cadastradas:", unimeds['Unimed'].tolist())
+        st.write("Unimeds cadastradas:", unimeds[coluna_unimed].tolist())
         st.stop()
 
     unimed_row = unimed.iloc[0]
