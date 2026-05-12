@@ -19,7 +19,7 @@ st.title("Gerador de Formulário Cancelamento 561 - Empresarial")
 # LER PLANILHAS
 # =====================================================
 
-url_excel = "https://docs.google.com/spreadsheets/d/12HYzSaLVEJpbBhsN7HXCQK4CrHmWO3CB/export?format=xlsx"
+url_excel = "https://docs.google.com/spreadsheets/d/1LjkHRoSQElthQYiyMzv8vjAtuJDhx6yQ/export?format=xlsx"
 
 clientes = pd.read_excel(
     url_excel,
