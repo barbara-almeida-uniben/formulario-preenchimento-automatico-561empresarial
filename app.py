@@ -1,52 +1,50 @@
 import streamlit as st
 import pandas as pd
-
 from pdfrw import PdfReader, PdfWriter, PdfDict
 from pdfrw.objects.pdfobject import PdfObject
-
-# =====================================================
-# CONFIG STREAMLIT
-# =====================================================
+import re
 
 st.set_page_config(
-    page_title="Gerador de Formulário",
+    page_title="Formulário 561",
     layout="centered"
 )
 
-st.title("Gerador de Formulário Cancelamento 561 - Empresarial")
-
-# =====================================================
-# LER PLANILHAS
-# =====================================================
+st.title("📄 Gerador de Formulário 561")
 
 base_id = "1LjkHRoSQElthQYiyMzv8vjAtuJDhx6yQ"
 
 url_beneficiarios = f"https://docs.google.com/spreadsheets/d/{base_id}/gviz/tq?tqx=out:csv&sheet=Beneficiarios"
 url_unimed = "https://docs.google.com/spreadsheets/d/1LjkHRoSQElthQYiyMzv8vjAtuJDhx6yQ/export?format=csv&gid=483371263"
 
-clientes = pd.read_csv(
-    url_beneficiarios,
-    dtype=str
-).fillna("")
 
-clientes.columns = clientes.columns.str.strip()
+def limpar_df(df):
+    df = df.fillna("")
+    df.columns = df.columns.astype(str).str.strip()
 
-unimeds = pd.read_csv(
-    url_unimed,
-    dtype=str
-).fillna("")
+    for coluna in df.columns:
+        df[coluna] = df[coluna].astype(str).str.strip()
 
-unimeds.columns = unimeds.columns.str.strip()
+    return df
 
-for coluna in clientes.columns:
-    clientes[coluna] = clientes[coluna].astype(str).str.strip()
 
-for coluna in unimeds.columns:
-    unimeds[coluna] = unimeds[coluna].astype(str).str.strip()
+def somente_digitos(valor, tamanho=None):
+    valor = "" if pd.isna(valor) else str(valor)
+    valor = "".join(filter(str.isdigit, valor))
 
-# =====================================================
-# MOTIVOS
-# =====================================================
+    if tamanho:
+        valor = valor.zfill(tamanho)
+
+    return valor
+
+
+def nome_seguro(texto):
+    return re.sub(r'[\\/*?:"<>|]', "-", str(texto))
+
+
+clientes = limpar_df(pd.read_csv(url_beneficiarios, dtype=str))
+unimeds = limpar_df(pd.read_csv(url_unimed, dtype=str))
+
+codigo = st.text_input("Digite o código do cliente")
 
 motivos = {
     "76": "Óbito",
@@ -59,64 +57,40 @@ motivos = {
     "56": "Viagem/Mudança"
 }
 
-# =====================================================
-# INPUTS
-# =====================================================
-
-codigo = st.text_input(
-    "Digite o código do cliente"
-)
-
 motivo = st.selectbox(
     "Motivo do cancelamento",
     list(motivos.keys()),
     format_func=lambda x: f"{x} - {motivos[x]}"
 )
 
-# =====================================================
-# BOTÃO
-# =====================================================
-
 if st.button("Gerar PDF"):
 
-    # =================================================
-    # BUSCAR TITULAR
-    # =================================================
-
     cliente = clientes[
-        (clientes['CODIGO'] == codigo) &
-        (clientes['TIPO'] == 'T')
+        (clientes["CODIGO"] == codigo.strip()) &
+        (clientes["TIPO"] == "T")
     ]
 
     if cliente.empty:
-
         st.error("Titular não encontrado.")
         st.stop()
 
     row = cliente.iloc[0]
 
-    # =================================================
-    # BUSCAR DEPENDENTES ATIVOS
-    # =================================================
-
     dependentes = clientes[
-        (clientes['CODIGO'] == codigo) &
-        (clientes['TIPO'] == 'D') &
-        (clientes['STATUS'] == 'A')
+        (clientes["CODIGO"] == codigo.strip()) &
+        (clientes["TIPO"] == "D") &
+        (clientes["STATUS"] == "A")
     ]
 
-    # =================================================
-    # BUSCAR UNIMED
-    # =================================================
+    beneficiarios = [row["NOME"]]
 
-    # =================================================
-    # BUSCAR UNIMED
-    # =================================================
+    for _, dep in dependentes.iterrows():
+        beneficiarios.append(dep["NOME"])
 
-    # Normalizar nomes das colunas
+    nome_unimed = str(row["OPERADORA"]).strip().upper()
+
     unimeds.columns = unimeds.columns.astype(str).str.strip()
 
-    # Encontrar automaticamente a coluna da Unimed
     coluna_unimed = None
 
     for col in unimeds.columns:
@@ -128,8 +102,6 @@ if st.button("Gerar PDF"):
         st.error("Coluna 'Unimed' não encontrada na aba Unimed.")
         st.write("Colunas encontradas:", unimeds.columns.tolist())
         st.stop()
-
-    nome_unimed = str(row['OPERADORA']).strip().upper()
 
     unimeds[coluna_unimed] = (
         unimeds[coluna_unimed]
@@ -150,101 +122,57 @@ if st.button("Gerar PDF"):
 
     unimed_row = unimed.iloc[0]
 
-    # =================================================
-    # ABRIR PDF
-    # =================================================
-
     pdf = PdfReader("formulario.pdf")
 
-    # =================================================
-    # HABILITAR APPEARANCE
-    # =================================================
-
     if pdf.Root.AcroForm:
-
         pdf.Root.AcroForm.update(
-            PdfDict(
-                NeedAppearances=PdfObject('true')
-            )
+            PdfDict(NeedAppearances=PdfObject("true"))
         )
 
-    # =================================================
-    # LISTA BENEFICIÁRIOS
-    # =================================================
-
-    beneficiarios = []
-
-    beneficiarios.append(row['NOME'])
-
-    for _, dep in dependentes.iterrows():
-
-        beneficiarios.append(dep['NOME'])
-
-    # =================================================
-    # CAMPOS PDF
-    # =================================================
-
     campos_pdf = {
+        "Texto3": unimed_row[coluna_unimed],
+        "Texto4": somente_digitos(unimed_row["CNPJ"], 14),
+        "Texto5": unimed_row["ANS"],
 
-        # =============================================
-        # OPERADORA
-        # =============================================
+        "Texto42": row["INSTITUICAO"],
+        "Texto43": somente_digitos(row["CNPJ_INSTITUICAO"], 14),
 
-        "Texto3": unimed_row['Unimed'],
-        "Texto4": unimed_row['CNPJ'],
-        "Texto5": unimed_row['ANS'],
+        "Razão Social": row["EMPRESA"],
+        "CNPJ": somente_digitos(row["CNPJ"], 14),
 
-        # =============================================
-        # AGLUTINADORA
-        # =============================================
+        "Texto7": row["NOME"],
+        "Texto8": somente_digitos(row["CPF"], 11),
+        "Texto9": row["EMAIL"],
 
-        "Texto42": row['INSTITUICAO'],
-        "Texto43": row['CNPJ_INSTITUICAO'],
+        "Texto10": row["ENDERECO"],
+        "Texto11": row["NUMERO"],
 
-        # =============================================
-        # EMPRESA ADERENTE
-        # =============================================
+        "Bairro": row["COMPLEMENTO"],
+        "Texto12": row["BAIRRO"],
 
-        "Razão Social": row['EMPRESA'],
-        "CNPJ": row['CNPJ'],
+        "Texto13": row["CIDADE"],
+        "UF": row["UF"],
+        "CEP": somente_digitos(row["CEP"], 8),
 
-        # =============================================
-        # TITULAR
-        # =============================================
-
-        "Texto7": row['NOME'],
-        "Texto8": row['CPF'],
-        "Texto9": row['EMAIL'],
-
-        "Texto10": row['ENDERECO'],
-        "Texto11": row['NUMERO'],
-
-        "Bairro": row['COMPLEMENTO'],
-        "Texto12": row['BAIRRO'],
-
-        "Texto13": row['CIDADE'],
-        "UF": row['UF'],
-        "CEP": row['CEP'],
-
-        "DDD  Telefone Celular": row['TELEFONE'],
-
-        # =============================================
-        # MOTIVO CANCELAMENTO
-        # =============================================
+        "DDD  Telefone Celular": row["TELEFONE"],
 
         "Texto16": motivo,
-        "Texto18": row['NOME'],
+        "Texto18": beneficiarios[0] if len(beneficiarios) > 0 else "",
 
-        # =============================================
-        # PÁGINA 3
-        # =============================================
+        "Texto20": motivo if len(beneficiarios) > 1 else "",
+        "Texto22": beneficiarios[1] if len(beneficiarios) > 1 else "",
 
-        "estou ciente das informações acima prestadas e manifesto a minha vontade em": row['NOME'],
-        "undefined_4": row['CPF'],
+        "Texto24": motivo if len(beneficiarios) > 2 else "",
+        "Texto26": beneficiarios[2] if len(beneficiarios) > 2 else "",
 
-        # =============================================
-        # DEPENDENTES
-        # =============================================
+        "Texto28": motivo if len(beneficiarios) > 3 else "",
+        "Texto30": beneficiarios[3] if len(beneficiarios) > 3 else "",
+
+        "Texto32": motivo if len(beneficiarios) > 4 else "",
+        "Texto34": beneficiarios[4] if len(beneficiarios) > 4 else "",
+
+        "estou ciente das informações acima prestadas e manifesto a minha vontade em": row["NOME"],
+        "undefined_4": somente_digitos(row["CPF"], 11),
 
         "Texto1": beneficiarios[0] if len(beneficiarios) > 0 else "",
         "Texto2": beneficiarios[1] if len(beneficiarios) > 1 else "",
@@ -257,71 +185,44 @@ if st.button("Gerar PDF"):
         "Nomes_2": beneficiarios[4] if len(beneficiarios) > 4 else "",
         "undefined_14": beneficiarios[5] if len(beneficiarios) > 5 else "",
         "undefined_15": beneficiarios[6] if len(beneficiarios) > 6 else "",
-        "undefined_16": beneficiarios[7] if len(beneficiarios) > 7 else ""
-
+        "undefined_16": beneficiarios[7] if len(beneficiarios) > 7 else "",
     }
 
-    # =================================================
-    # PREENCHER PDF
-    # =================================================
-
     for page in pdf.pages:
-
-        annotations = page.get('/Annots')
+        annotations = page.get("/Annots")
 
         if not annotations:
             continue
 
         for annotation in annotations:
-
-            if annotation.get('/Subtype') != '/Widget':
+            if annotation.get("/Subtype") != "/Widget":
                 continue
 
-            key = annotation.get('/T')
+            key = annotation.get("/T")
 
             if not key:
                 continue
 
             campo = key[1:-1]
 
-            # IGNORAR CHECKBOX E RADIO
-            if "Check Box" in campo:
+            if "Check Box" in campo or "Group" in campo:
                 continue
 
-            if "Group" in campo:
-                continue
-
-            # PREENCHER
             if campo in campos_pdf:
-
                 annotation.update(
-                    PdfDict(
-                        V=str(campos_pdf[campo])
-                    )
+                    PdfDict(V=str(campos_pdf[campo]))
                 )
 
-    # =================================================
-    # SALVAR PDF
-    # =================================================
+    nome_pdf = f"Formulario_561_{codigo}_{nome_seguro(row['NOME'])}.pdf"
 
-    nome_pdf = f"{row['NOME']}.pdf"
+    PdfWriter().write(nome_pdf, pdf)
 
-    PdfWriter().write(
-        nome_pdf,
-        pdf
-    )
-
-    # =================================================
-    # DOWNLOAD
-    # =================================================
+    st.success("PDF gerado com sucesso!")
 
     with open(nome_pdf, "rb") as file:
-
         st.download_button(
             label="⬇️ Baixar PDF",
             data=file,
             file_name=nome_pdf,
             mime="application/pdf"
         )
-
-    st.success("PDF gerado com sucesso!")
