@@ -17,13 +17,9 @@ st.title("📄 Gerador RN488")
 st.write("Solicitação de Exclusão de Beneficiários")
 
 base_id = "1LjkHRoSQElthQYiyMzv8vjAtuJDhx6yQ"
-
 url_beneficiarios = f"https://docs.google.com/spreadsheets/d/{base_id}/gviz/tq?tqx=out:csv&sheet=Beneficiarios"
-
 url_unimed = "https://docs.google.com/spreadsheets/d/1LjkHRoSQElthQYiyMzv8vjAtuJDhx6yQ/export?format=csv&gid=483371263"
-
-url_lote = "https://docs.google.com/spreadsheets/d/1LjkHRoSQElthQYiyMzv8vjAtuJDhx6yQ/export?format=csv&gid=448530069"
-
+url_lote = "https://docs.google.com/spreadsheets/d/1KcdNWj-qrvaHSoqKNEA0gNvwWzGuRQoD/export?format=csv&gid=110582&cachebuster=1"
 
 def limpar_df(df):
     df = df.fillna("")
