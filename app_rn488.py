@@ -22,11 +22,11 @@ st.write("Solicitação de Exclusão de Beneficiários + Termo de Responsabilida
 
 base_id = "1KcdNWj-qrvaHSoqKNEA0gNvwWzGuRQoD"
 
-url_beneficiarios = f"https://docs.google.com/spreadsheets/d/{base_id}/gviz/tq?tqx=out:csv&sheet=Beneficiarios"
-
-url_unimed = f"https://docs.google.com/spreadsheets/d/{base_id}/export?format=csv&gid=483371263"
+url_beneficiarios = f"https://docs.google.com/spreadsheets/d/{base_id}/export?format=csv&gid=2120607349"
 
 url_lote = f"https://docs.google.com/spreadsheets/d/{base_id}/export?format=csv&gid=110582"
+
+url_unimed = f"https://docs.google.com/spreadsheets/d/{base_id}/export?format=csv&gid=912196708"
 
 
 # =====================================================
