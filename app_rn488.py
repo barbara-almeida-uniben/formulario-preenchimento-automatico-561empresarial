@@ -77,11 +77,32 @@ def mes_extenso(numero_mes):
 def marcar_checkbox(annotation):
     annotation.update(
         PdfDict(
+            V=PdfObject("/Off"),
+            AS=PdfObject("/Off")
+        )
+    )
+
+    ap = annotation.get("/AP")
+
+    if ap and ap.get("/N"):
+        estados = list(ap["/N"].keys())
+
+        for estado in estados:
+            if estado != "/Off":
+                annotation.update(
+                    PdfDict(
+                        V=PdfObject(estado),
+                        AS=PdfObject(estado)
+                    )
+                )
+                return
+
+    annotation.update(
+        PdfDict(
             V=PdfObject("/Yes"),
             AS=PdfObject("/Yes")
         )
     )
-
 
 def buscar_unimed(row, unimeds):
     nome_unimed = str(row["OPERADORA"]).strip().upper()
@@ -460,4 +481,4 @@ else:
                 data=file,
                 file_name=nome_zip,
                 mime="application/zip"
-            )
+            ) 
