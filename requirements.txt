@@ -2,3 +2,8 @@ streamlit
 pandas
 openpyxl
 pdfrw
+streamlit
+pandas
+pdfrw
+reportlab
+openpyxl
