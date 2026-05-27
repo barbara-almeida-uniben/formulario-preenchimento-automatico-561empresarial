@@ -545,13 +545,13 @@ if st.button("Gerar proposta"):
 
     can.setFont("Helvetica", 7)
 
-    can.drawString(295, 281, str(row["ENDERECO"]))
-    can.drawString(35, 258, str(row["NUMERO"]))
-    can.drawString(125, 258, str(row["COMPLEMENTO"]))
-    can.drawString(260, 258, str(row["BAIRRO"]))
-    can.drawString(35, 235, str(row["CIDADE"]))
-    can.drawString(365, 235, somente_digitos(row["CEP"], 8))
-    can.drawString(510, 235, str(row["UF"]))
+    can.drawString(295, 281, str(row["ENDERECO"]))          # Endereço
+    can.drawString(35, 250, str(row["NUMERO"]))             # Número
+    can.drawString(145, 245, str(row["COMPLEMENTO"]))       # Complemento
+    can.drawString(300, 250, str(row["BAIRRO"]))            # Bairro
+    can.drawString(35, 215, str(row["CIDADE"]))             # Município
+    can.drawString(385, 215, somente_digitos(row["CEP"], 8))# CEP
+    can.drawString(500, 215, str(row["UF"]))  
 
     # valor total na página 4
     can.showPage()
