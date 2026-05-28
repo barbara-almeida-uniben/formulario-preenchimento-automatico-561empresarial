@@ -6,6 +6,8 @@ from reportlab.pdfgen import canvas
 from datetime import datetime
 from io import BytesIO
 import re
+import os
+import zipfile
 
 st.set_page_config(
     page_title="Proposta de Adesão",
@@ -23,7 +25,7 @@ base_id = "1KcdNWj-qrvaHSoqKNEA0gNvwWzGuRQoD"
 url_beneficiarios = f"https://docs.google.com/spreadsheets/d/{base_id}/export?format=csv&gid=2120607349"
 url_unimed = f"https://docs.google.com/spreadsheets/d/{base_id}/export?format=csv&gid=912196708"
 url_produtos = f"https://docs.google.com/spreadsheets/d/{base_id}/export?format=csv&gid=680489316"
-
+url_lote_proposta = f"https://docs.google.com/spreadsheets/d/{base_id}/export?format=csv&gid=1170670471"
 
 # =====================================================
 # FUNÇÕES
@@ -200,23 +202,30 @@ lista_produtos = sorted(produtos["Produto"].dropna().unique().tolist())
 # INTERFACE
 # =====================================================
 
-codigo = st.text_input("Digite o código do cliente titular")
-
-tipo_processo = st.selectbox(
-    "Tipo de processo",
-    [
-        "Troca de produto",
-        "Troca de instituição",
-        "Inclusão de dependente"
-    ]
+modo = st.radio(
+    "Como deseja gerar?",
+    ["Individual", "Lote - Troca de produto"]
 )
 
-data_vigencia = st.text_input("Data de vigência - DD/MM/AA")
+if modo == "Individual":
 
-produto_escolhido = st.selectbox(
-    "Produto / Plano",
-    lista_produtos
-)
+    codigo = st.text_input("Digite o código do cliente titular")
+
+    tipo_processo = st.selectbox(
+        "Tipo de processo",
+        [
+            "Troca de produto",
+            "Troca de instituição",
+            "Inclusão de dependente"
+        ]
+    )
+
+    data_vigencia = st.text_input("Data de vigência - DD/MM/AA")
+
+    produto_escolhido = st.selectbox(
+        "Produto / Plano",
+        lista_produtos
+    )
 
 cpf_novo_dependente = ""
 
