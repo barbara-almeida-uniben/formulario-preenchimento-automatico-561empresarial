@@ -485,7 +485,7 @@ def gerar_proposta(
 
     can = canvas.Canvas(packet, pagesize=(largura, altura))
 
-    can.setFont("Helvetica", 7)
+    can.setFont("Helvetica", 10)
 
     # Página 1 - endereço do titular
     can.drawString(295, 281, str(row["ENDERECO"]))          # Endereço
