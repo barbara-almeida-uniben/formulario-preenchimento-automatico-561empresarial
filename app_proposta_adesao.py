@@ -196,12 +196,12 @@ def buscar_unimed(row, unimeds):
 
     for col in unimeds.columns:
 
-        if col.strip().upper() == "UNIMED":
+        if col.strip().upper() == "Unimed":
             coluna_unimed = col
             break
 
     if coluna_unimed is None:
-        return None, "Coluna UNIMED não encontrada."
+        return None, "Coluna Unimed não encontrada."
 
     unimeds[coluna_unimed] = (
         unimeds[coluna_unimed]
