@@ -1,57 +1,52 @@
 import streamlit as st
 import pandas as pd
-from pypdf import PdfReader, PdfWriter
-import re
 
-st.set_page_config(page_title="Formulário 561", layout="centered")
+from pdfrw import PdfReader, PdfWriter, PdfDict
+from pdfrw.objects.pdfobject import PdfObject
 
-st.title("📄 Gerador de Formulário 561")
+# =====================================================
+# CONFIG STREAMLIT
+# =====================================================
 
-# =========================
-# PLANILHA
-# =========================
-SHEET_ID = "1KcdNWj-qrvaHSoqKNEA0gNvwWzGuRQoD"
+st.set_page_config(
+    page_title="Gerador de Formulário",
+    layout="centered"
+)
 
-url_beneficiarios = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid=2120607349"
-url_unimed = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid=912196708"
+st.title("Gerador de Formulário Unimed")
 
+# =====================================================
+# LER PLANILHAS
+# =====================================================
 
-def limpar_df(df):
-    df = df.fillna("")
-    df.columns = df.columns.astype(str).str.strip()
-    for c in df.columns:
-        df[c] = df[c].astype(str).str.strip()
-    return df
+CODIGO_UNIMED = "912196708"
+CODIGO_BENEF = "2120607349"
 
+clientes = pd.read_excel(
+    "dados.xlsx",
+    sheet_name="Beneficiarios",
+    dtype=str
+).fillna("")
 
-def somente_digitos(valor, tamanho=None):
-    valor = "" if pd.isna(valor) else str(valor)
-    valor = re.sub(r"\D", "", valor)
-    if tamanho:
-        valor = valor.zfill(tamanho)
-    return valor
+# filtra apenas beneficiários do código correto
+clientes = clientes[
+    clientes["CODIGO_GIT"] == CODIGO_BENEF
+]
 
+unimeds = pd.read_excel(
+    "dados.xlsx",
+    sheet_name="Unimed",
+    dtype=str
+).fillna("")
 
-def nome_seguro(texto):
-    return re.sub(r'[\\/*?:"<>|]', "-", str(texto))
+# filtra apenas a unimed correta
+unimeds = unimeds[
+    unimeds["CODIGO_GIT"] == CODIGO_UNIMED
+]
 
-
-# =========================
-# CARREGAMENTO
-# =========================
-try:
-    clientes = limpar_df(pd.read_csv(url_beneficiarios, dtype=str))
-    unimeds = limpar_df(pd.read_csv(url_unimed, dtype=str))
-except Exception as e:
-    st.error("Erro ao carregar planilhas")
-    st.exception(e)
-    st.stop()
-
-
-# =========================
-# INPUTS
-# =========================
-codigo = st.text_input("Digite o código do cliente")
+# =====================================================
+# MOTIVOS
+# =====================================================
 
 motivos = {
     "76": "Óbito",
@@ -64,155 +59,243 @@ motivos = {
     "56": "Viagem/Mudança"
 }
 
+# =====================================================
+# INPUTS
+# =====================================================
+
+codigo = st.text_input(
+    "Digite o código do cliente"
+)
+
 motivo = st.selectbox(
     "Motivo do cancelamento",
     list(motivos.keys()),
     format_func=lambda x: f"{x} - {motivos[x]}"
 )
 
+# =====================================================
+# BOTÃO
+# =====================================================
 
-# =========================
-# GERAR PDF
-# =========================
 if st.button("Gerar PDF"):
 
-    if not codigo:
-        st.warning("Informe o código do cliente.")
-        st.stop()
-
-    codigo = codigo.strip()
+    # =================================================
+    # BUSCAR TITULAR
+    # =================================================
 
     cliente = clientes[
-        (clientes["CODIGO"] == codigo) &
-        (clientes["TIPO"] == "T")
+        (clientes['CODIGO'] == codigo) &
+        (clientes['TIPO'] == 'T')
     ]
 
     if cliente.empty:
+
         st.error("Titular não encontrado.")
         st.stop()
 
     row = cliente.iloc[0]
 
-    # =========================
-    # DEPENDENTES
-    # =========================
+    # =================================================
+    # BUSCAR DEPENDENTES ATIVOS
+    # =================================================
+
     dependentes = clientes[
-        (clientes["CODIGO"] == codigo) &
-        (clientes["TIPO"] == "D") &
-        (clientes["STATUS"] == "A")
+        (clientes['CODIGO'] == codigo) &
+        (clientes['TIPO'] == 'D') &
+        (clientes['STATUS'] == 'A')
     ]
 
-    beneficiarios = [row["NOME"]]
+    # =================================================
+    # BUSCAR UNIMED
+    # =================================================
 
-    for _, dep in dependentes.iterrows():
-        if dep["NOME"]:
-            beneficiarios.append(dep["NOME"])
+    nome_unimed = row['OPERADORA'].strip().upper()
 
-    beneficiarios = beneficiarios[:8]
+    unimeds['Unimed'] = unimeds['Unimed'].str.strip().str.upper()
 
-    # =========================
-    # UNIMED
-    # =========================
-    nome_unimed = str(row.get("OPERADORA", "")).strip().upper()
-
-    col_unimed = next((c for c in unimeds.columns if c.strip().upper() == "UNIMED"), None)
-
-    if not col_unimed:
-        st.error("Coluna UNIMED não encontrada.")
-        st.stop()
-
-    unimeds[col_unimed] = unimeds[col_unimed].astype(str).str.strip().str.upper()
-
-    unimed = unimeds[unimeds[col_unimed].str.contains(nome_unimed, na=False)]
+    unimed = unimeds[
+        unimeds['Unimed'] == nome_unimed
+    ]
 
     if unimed.empty:
+
         st.error("Unimed não encontrada.")
         st.stop()
 
     unimed_row = unimed.iloc[0]
 
+    # =================================================
+    # ABRIR PDF
+    # =================================================
 
-    # =========================
+    pdf = PdfReader("formulario.pdf")
+
+    # =================================================
+    # HABILITAR APPEARANCE
+    # =================================================
+
+    if pdf.Root.AcroForm:
+
+        pdf.Root.AcroForm.update(
+            PdfDict(
+                NeedAppearances=PdfObject('true')
+            )
+        )
+
+    # =================================================
+    # LISTA BENEFICIÁRIOS
+    # =================================================
+
+    beneficiarios = []
+
+    beneficiarios.append(row['NOME'])
+
+    for _, dep in dependentes.iterrows():
+
+        beneficiarios.append(dep['NOME'])
+
+    # =================================================
     # CAMPOS PDF
-    # =========================
+    # =================================================
+
     campos_pdf = {
-        "Texto3": unimed_row.get(col_unimed, ""),
-        "Texto4": somente_digitos(unimed_row.get("CNPJ", ""), 14),
-        "Texto5": unimed_row.get("ANS", ""),
 
-        "Texto42": row.get("INSTITUICAO", ""),
-        "Texto43": somente_digitos(row.get("CNPJ_INSTITUICAO", ""), 14),
+        # =============================================
+        # OPERADORA
+        # =============================================
 
-        "Razão Social": row.get("EMPRESA", ""),
-        "CNPJ": somente_digitos(row.get("CNPJ", ""), 14),
+        "Texto3": unimed_row['Unimed'],
+        "Texto4": unimed_row['CNPJ'],
+        "Texto5": unimed_row['ANS'],
 
-        "Texto7": row.get("NOME", ""),
-        "Texto8": somente_digitos(row.get("CPF", ""), 11),
-        "Texto9": row.get("EMAIL", ""),
+        # =============================================
+        # AGLUTINADORA
+        # =============================================
 
-        "Texto10": row.get("ENDERECO", ""),
-        "Texto11": row.get("NUMERO", ""),
+        "Texto42": row['INSTITUICAO'],
+        "Texto43": row['CNPJ_INSTITUICAO'],
 
-        "Texto12": row.get("BAIRRO", ""),
-        "Texto13": row.get("CIDADE", ""),
-        "UF": row.get("UF", ""),
-        "CEP": somente_digitos(row.get("CEP", ""), 8),
+        # =============================================
+        # EMPRESA ADERENTE
+        # =============================================
 
-        "DDD  Telefone Celular": row.get("TELEFONE", ""),
+        "Razão Social": row['EMPRESA'],
+        "CNPJ": row['CNPJ'],
+
+        # =============================================
+        # TITULAR
+        # =============================================
+
+        "Texto7": row['NOME'],
+        "Texto8": row['CPF'],
+        "Texto9": row['EMAIL'],
+
+        "Texto10": row['ENDERECO'],
+        "Texto11": row['NUMERO'],
+
+        "Bairro": row['COMPLEMENTO'],
+        "Texto12": row['BAIRRO'],
+
+        "Texto13": row['CIDADE'],
+        "UF": row['UF'],
+        "CEP": row['CEP'],
+
+        "DDD  Telefone Celular": row['TELEFONE'],
+
+        # =============================================
+        # MOTIVO CANCELAMENTO
+        # =============================================
 
         "Texto16": motivo,
-        "Texto18": beneficiarios[0] if len(beneficiarios) > 0 else "",
+        "Texto18": row['NOME'],
+
+        # =============================================
+        # PÁGINA 3
+        # =============================================
+
+        "estou ciente das informações acima prestadas e manifesto a minha vontade em": row['NOME'],
+        "undefined_4": row['CPF'],
+
+        # =============================================
+        # DEPENDENTES
+        # =============================================
+
+        "Texto1": beneficiarios[0] if len(beneficiarios) > 0 else "",
+        "Texto2": beneficiarios[1] if len(beneficiarios) > 1 else "",
+
+        "Nomes": beneficiarios[0] if len(beneficiarios) > 0 else "",
+        "undefined_11": beneficiarios[1] if len(beneficiarios) > 1 else "",
+        "undefined_12": beneficiarios[2] if len(beneficiarios) > 2 else "",
+        "undefined_13": beneficiarios[3] if len(beneficiarios) > 3 else "",
+
+        "Nomes_2": beneficiarios[4] if len(beneficiarios) > 4 else "",
+        "undefined_14": beneficiarios[5] if len(beneficiarios) > 5 else "",
+        "undefined_15": beneficiarios[6] if len(beneficiarios) > 6 else "",
+        "undefined_16": beneficiarios[7] if len(beneficiarios) > 7 else ""
+
     }
 
-    # dependentes extras
-    mapping = [
-        ("Texto20", "Texto22"),
-        ("Texto24", "Texto26"),
-        ("Texto28", "Texto30"),
-        ("Texto32", "Texto34"),
-    ]
+    # =================================================
+    # PREENCHER PDF
+    # =================================================
 
-    for i, (c1, c2) in enumerate(mapping, start=1):
-        if len(beneficiarios) > i:
-            campos_pdf[c1] = motivo
-            campos_pdf[c2] = beneficiarios[i]
+    for page in pdf.pages:
 
+        annotations = page.get('/Annots')
 
-   # =========================
-# PDF FILL (CORRIGIDO - COM AcroForm)
-# =========================
+        if not annotations:
+            continue
 
-reader = PdfReader("formulario.pdf")
-writer = PdfWriter()
+        for annotation in annotations:
 
-# copia páginas corretamente
-writer.append_pages_from_reader(reader)
+            if annotation.get('/Subtype') != '/Widget':
+                continue
 
-# 🔥 mantém o formulário original (ESSENCIAL)
-if "/AcroForm" in reader.trailer["/Root"]:
-    writer._root_object.update({
-        "/AcroForm": reader.trailer["/Root"]["/AcroForm"]
-    })
+            key = annotation.get('/T')
 
-# preenche campos
-writer.update_page_form_field_values(
-    writer.pages,
-    campos_pdf
-)
+            if not key:
+                continue
 
-# nome do arquivo
-nome_pdf = f"Formulario_561_{codigo}_{nome_seguro(row['NOME'])}.pdf"
+            campo = key[1:-1]
 
-# salva
-with open(nome_pdf, "wb") as f:
-    writer.write(f)
+            # IGNORAR CHECKBOX E RADIO
+            if "Check Box" in campo:
+                continue
 
-st.success("PDF gerado com sucesso!")
+            if "Group" in campo:
+                continue
 
-with open(nome_pdf, "rb") as file:
-    st.download_button(
-        label="📥 Baixar PDF",
-        data=file,
-        file_name=nome_pdf,
-        mime="application/pdf"
+            # PREENCHER
+            if campo in campos_pdf:
+
+                annotation.update(
+                    PdfDict(
+                        V=str(campos_pdf[campo])
+                    )
+                )
+
+    # =================================================
+    # SALVAR PDF
+    # =================================================
+
+    nome_pdf = f"{row['NOME']}.pdf"
+
+    PdfWriter().write(
+        nome_pdf,
+        pdf
     )
+
+    # =================================================
+    # DOWNLOAD
+    # =================================================
+
+    with open(nome_pdf, "rb") as file:
+
+        st.download_button(
+            label="⬇️ Baixar PDF",
+            data=file,
+            file_name=nome_pdf,
+            mime="application/pdf"
+        )
+
+    st.success("PDF gerado com sucesso!")
