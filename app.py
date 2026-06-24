@@ -44,7 +44,12 @@ def nome_seguro(texto):
     return re.sub(r'[\\/*?:"<>|]', "-", str(texto))
 
 
-clientes = limpar_df(pd.read_csv(url_beneficiarios, dtype=str))
+st.write(url_beneficiarios)
+
+try:
+    clientes = limpar_df(pd.read_csv(url_beneficiarios, dtype=str))
+except Exception as e:
+    st.error(e)
 unimeds = limpar_df(pd.read_csv(url_unimed, dtype=str))
 
 codigo = st.text_input("Digite o código do cliente")
