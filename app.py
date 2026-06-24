@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from pdfrw import PdfReader, PdfWriter, PdfDict
+from pdfrw import PdfReader, PdfWriter, PdfDict, PdfName
 from pdfrw.objects.pdfobject import PdfObject
 import re
 
@@ -195,24 +195,34 @@ if st.button("Gerar PDF"):
     # PREENCHER PDF
     # =========================
     for page in pdf.pages:
-        annots = page.get("/Annots")
-        if not annots:
+        annotations = page.get("/Annots")
+
+        if not annotations:
             continue
 
-        for annot in annots:
-            if annot.get("/Subtype") != "/Widget":
+        for annotation in annotations:
+            if annotation.get("/Subtype") != "/Widget":
                 continue
 
-            key = annot.get("/T")
+            key = annotation.get("/T")
             if not key:
                 continue
 
             campo = key[1:-1]
 
             if campo in campos_pdf:
-                annot.update(
-                    PdfDict(V=PdfObject(str(campos_pdf[campo])))
+                valor = str(campos_pdf[campo])
+
+                annotation.update(
+                    PdfDict(
+                        V=valor,
+                        AP=PdfDict(N=PdfObject('')),
+                    )
                 )
+
+                annotation.update({
+                    PdfName('V'): PdfObject(f"({valor})")
+                })
 
     nome_pdf = f"Formulario_561_{codigo}_{nome_seguro(row['NOME'])}.pdf"
 
