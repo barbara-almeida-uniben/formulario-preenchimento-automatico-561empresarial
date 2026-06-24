@@ -178,31 +178,41 @@ if st.button("Gerar PDF"):
             campos_pdf[c2] = beneficiarios[i]
 
 
-    # =========================
-    # PDF FILL (CORRETO)
-    # =========================
-    reader = PdfReader("formulario.pdf")
-    writer = PdfWriter()
+   # =========================
+# PDF FILL (CORRIGIDO - COM AcroForm)
+# =========================
 
-    for page in reader.pages:
-        writer.add_page(page)
+reader = PdfReader("formulario.pdf")
+writer = PdfWriter()
 
-    writer.update_page_form_field_values(
-        writer.pages,
-        campos_pdf
+# copia páginas corretamente
+writer.append_pages_from_reader(reader)
+
+# 🔥 mantém o formulário original (ESSENCIAL)
+if "/AcroForm" in reader.trailer["/Root"]:
+    writer._root_object.update({
+        "/AcroForm": reader.trailer["/Root"]["/AcroForm"]
+    })
+
+# preenche campos
+writer.update_page_form_field_values(
+    writer.pages,
+    campos_pdf
+)
+
+# nome do arquivo
+nome_pdf = f"Formulario_561_{codigo}_{nome_seguro(row['NOME'])}.pdf"
+
+# salva
+with open(nome_pdf, "wb") as f:
+    writer.write(f)
+
+st.success("PDF gerado com sucesso!")
+
+with open(nome_pdf, "rb") as file:
+    st.download_button(
+        label="📥 Baixar PDF",
+        data=file,
+        file_name=nome_pdf,
+        mime="application/pdf"
     )
-
-    nome_pdf = f"Formulario_561_{codigo}_{nome_seguro(row['NOME'])}.pdf"
-
-    with open(nome_pdf, "wb") as f:
-        writer.write(f)
-
-    st.success("PDF gerado com sucesso!")
-
-    with open(nome_pdf, "rb") as file:
-        st.download_button(
-            label="📥 Baixar PDF",
-            data=file,
-            file_name=nome_pdf,
-            mime="application/pdf"
-        )
