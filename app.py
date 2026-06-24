@@ -194,6 +194,13 @@ if st.button("Gerar PDF"):
     # =========================
     # PREENCHER PDF
     # =========================
+    st.write("CAMPOS DO PDF:")
+    for page in pdf.pages:
+        annots = page.get("/Annots") or []
+        for a in annots:
+            if a.get("/T"):
+                st.write(a.get("/T"))
+                
     for page in pdf.pages:
         annotations = page.get("/Annots")
 
