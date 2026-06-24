@@ -309,6 +309,12 @@ def gerar_proposta(
         pdf.Root.AcroForm.update(
             PdfDict(NeedAppearances=PdfObject("true"))
         )
+        pdf.Root.AcroForm.update(
+            PdfDict(
+                NeedAppearances=PdfObject("true"),
+                DR=PdfDict()
+            )
+        )
 
     campos_pdf = {
         "Texto11": dia_vigencia,
@@ -474,8 +480,14 @@ def gerar_proposta(
                 continue
 
             if campo in campos_pdf:
+                valor = str(campos_pdf[campo])
+
                 annotation.update(
-                    PdfDict(V=str(campos_pdf[campo]))
+                    PdfDict(
+                        V=valor,
+                        AS=valor,
+                        AP=None  # remove aparência travada
+                    )
                 )
 
     packet = BytesIO()
