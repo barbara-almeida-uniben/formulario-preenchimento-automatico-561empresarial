@@ -7,3 +7,4 @@ pandas
 pdfrw
 reportlab
 openpyxl
+pypdf
