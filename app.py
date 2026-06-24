@@ -13,7 +13,10 @@ st.title("📄 Gerador de Formulário 561")
 
 base_id = "1LjkHRoSQElthQYiyMzv8vjAtuJDhx6yQ"
 
-url_beneficiarios = f"https://docs.google.com/spreadsheets/d/{base_id}/export?format=csv&gid=2120607349"
+url_beneficiarios = (
+    "https://docs.google.com/spreadsheets/d/"
+    "1LjKHRoSQElthQYiyMzv8vjAtuJDhx6yQ/export?format=csv&gid=2120607349"
+)
 url_unimed = "https://docs.google.com/spreadsheets/d/1LjkHRoSQElthQYiyMzv8vjAtuJDhx6yQ/export?format=csv&gid=483371263"
 
 
