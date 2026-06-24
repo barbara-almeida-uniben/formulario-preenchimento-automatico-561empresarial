@@ -1,19 +1,19 @@
 import streamlit as st
 import pandas as pd
-from pdfrw import PdfReader, PdfWriter, PdfDict, PdfName
-from pdfrw.objects.pdfobject import PdfObject
+from pypdf import PdfReader, PdfWriter
 import re
 
-st.set_page_config(
-    page_title="Formulário 561",
-    layout="centered"
-)
+st.set_page_config(page_title="Formulário 561", layout="centered")
 
 st.title("📄 Gerador de Formulário 561")
 
-base_id = "1KcdNWj-qrvaHSoqKNEA0gNvwWzGuRQoD"
-url_beneficiarios = f"https://docs.google.com/spreadsheets/d/{base_id}/export?format=csv&gid=2120607349"
-url_unimed = f"https://docs.google.com/spreadsheets/d/{base_id}/export?format=csv&gid=912196708"
+# =========================
+# PLANILHA
+# =========================
+SHEET_ID = "1KcdNWj-qrvaHSoqKNEA0gNvwWzGuRQoD"
+
+url_beneficiarios = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid=2120607349"
+url_unimed = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid=912196708"
 
 
 def limpar_df(df):
@@ -37,21 +37,16 @@ def nome_seguro(texto):
 
 
 # =========================
-# CARREGAMENTO DE DADOS
+# CARREGAMENTO
 # =========================
 try:
     clientes = limpar_df(pd.read_csv(url_beneficiarios, dtype=str))
+    unimeds = limpar_df(pd.read_csv(url_unimed, dtype=str))
 except Exception as e:
-    st.error("Erro ao carregar beneficiários")
+    st.error("Erro ao carregar planilhas")
     st.exception(e)
     st.stop()
 
-try:
-    unimeds = limpar_df(pd.read_csv(url_unimed, dtype=str))
-except Exception as e:
-    st.error("Erro ao carregar Unimed")
-    st.exception(e)
-    st.stop()
 
 # =========================
 # INPUTS
@@ -75,6 +70,7 @@ motivo = st.selectbox(
     format_func=lambda x: f"{x} - {motivos[x]}"
 )
 
+
 # =========================
 # GERAR PDF
 # =========================
@@ -97,6 +93,9 @@ if st.button("Gerar PDF"):
 
     row = cliente.iloc[0]
 
+    # =========================
+    # DEPENDENTES
+    # =========================
     dependentes = clientes[
         (clientes["CODIGO"] == codigo) &
         (clientes["TIPO"] == "D") &
@@ -105,23 +104,18 @@ if st.button("Gerar PDF"):
 
     beneficiarios = [row["NOME"]]
 
-    if not dependentes.empty:
-        for _, dep in dependentes.iterrows():
-            if dep["NOME"]:
-                beneficiarios.append(dep["NOME"])
+    for _, dep in dependentes.iterrows():
+        if dep["NOME"]:
+            beneficiarios.append(dep["NOME"])
 
-    beneficiarios = beneficiarios[:8]  # limite de segurança
+    beneficiarios = beneficiarios[:8]
 
     # =========================
     # UNIMED
     # =========================
     nome_unimed = str(row.get("OPERADORA", "")).strip().upper()
 
-    col_unimed = None
-    for col in unimeds.columns:
-        if col.strip().upper() == "UNIMED":
-            col_unimed = col
-            break
+    col_unimed = next((c for c in unimeds.columns if c.strip().upper() == "UNIMED"), None)
 
     if not col_unimed:
         st.error("Coluna UNIMED não encontrada.")
@@ -137,18 +131,12 @@ if st.button("Gerar PDF"):
 
     unimed_row = unimed.iloc[0]
 
-    # =========================
-    # PDF
-    # =========================
-    pdf = PdfReader("formulario.pdf")
 
-    if pdf.Root.AcroForm:
-        pdf.Root.AcroForm.update(
-            PdfDict(NeedAppearances=PdfObject("true"))
-        )
-
+    # =========================
+    # CAMPOS PDF
+    # =========================
     campos_pdf = {
-        "Texto3": unimed_row[col_unimed],
+        "Texto3": unimed_row.get(col_unimed, ""),
         "Texto4": somente_digitos(unimed_row.get("CNPJ", ""), 14),
         "Texto5": unimed_row.get("ANS", ""),
 
@@ -165,9 +153,7 @@ if st.button("Gerar PDF"):
         "Texto10": row.get("ENDERECO", ""),
         "Texto11": row.get("NUMERO", ""),
 
-        "Bairro": row.get("COMPLEMENTO", ""),
         "Texto12": row.get("BAIRRO", ""),
-
         "Texto13": row.get("CIDADE", ""),
         "UF": row.get("UF", ""),
         "CEP": somente_digitos(row.get("CEP", ""), 8),
@@ -178,62 +164,38 @@ if st.button("Gerar PDF"):
         "Texto18": beneficiarios[0] if len(beneficiarios) > 0 else "",
     }
 
-    # dependentes dinamicamente
-    campos_dependentes = [
+    # dependentes extras
+    mapping = [
         ("Texto20", "Texto22"),
         ("Texto24", "Texto26"),
         ("Texto28", "Texto30"),
         ("Texto32", "Texto34"),
     ]
 
-    for i, (c_motivo, c_nome) in enumerate(campos_dependentes, start=1):
+    for i, (c1, c2) in enumerate(mapping, start=1):
         if len(beneficiarios) > i:
-            campos_pdf[c_motivo] = motivo
-            campos_pdf[c_nome] = beneficiarios[i]
+            campos_pdf[c1] = motivo
+            campos_pdf[c2] = beneficiarios[i]
+
 
     # =========================
-    # PREENCHER PDF
+    # PDF FILL (CORRETO)
     # =========================
-    st.write("CAMPOS DO PDF:")
-    for page in pdf.pages:
-        annots = page.get("/Annots") or []
-        for a in annots:
-            if a.get("/T"):
-                st.write(a.get("/T"))
-                
-    for page in pdf.pages:
-        annotations = page.get("/Annots")
+    reader = PdfReader("formulario.pdf")
+    writer = PdfWriter()
 
-        if not annotations:
-            continue
+    for page in reader.pages:
+        writer.add_page(page)
 
-        for annotation in annotations:
-            if annotation.get("/Subtype") != "/Widget":
-                continue
-
-            key = annotation.get("/T")
-            if not key:
-                continue
-
-            campo = key[1:-1]
-
-            if campo in campos_pdf:
-                valor = str(campos_pdf[campo])
-
-                annotation.update(
-                    PdfDict(
-                        V=valor,
-                        AP=PdfDict(N=PdfObject('')),
-                    )
-                )
-
-                annotation.update({
-                    PdfName('V'): PdfObject(f"({valor})")
-                })
+    writer.update_page_form_field_values(
+        writer.pages,
+        campos_pdf
+    )
 
     nome_pdf = f"Formulario_561_{codigo}_{nome_seguro(row['NOME'])}.pdf"
 
-    PdfWriter().write(nome_pdf, pdf)
+    with open(nome_pdf, "wb") as f:
+        writer.write(f)
 
     st.success("PDF gerado com sucesso!")
 
