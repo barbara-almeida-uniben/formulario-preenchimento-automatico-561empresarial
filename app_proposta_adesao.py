@@ -479,16 +479,23 @@ def gerar_proposta(
             if "Check Box" in campo:
                 continue
 
-            if campo in campos_pdf:
-                valor = str(campos_pdf[campo])
+        campos_excluir_calculo = [
+            "Valor total da(s) Mensalidade(s)",
+            "Total Mensalidade",
+        ]
 
-                annotation.update(
-                    PdfDict(
-                        V=valor,
-                        AS=valor,
-                        AP=None  # remove aparência travada
-                    )
+        if campo in campos_excluir_calculo:
+            continue
+
+        if campo in campos_pdf:
+            valor = str(campos_pdf[campo])
+
+            annotation.update(
+                PdfDict(
+                    V=PdfObject(f"({valor})"),
+                    Ff=0
                 )
+            )
 
     packet = BytesIO()
 
