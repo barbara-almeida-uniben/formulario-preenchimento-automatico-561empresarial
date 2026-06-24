@@ -50,8 +50,14 @@ try:
     clientes = limpar_df(pd.read_csv(url_beneficiarios, dtype=str))
 except Exception as e:
     st.error(e)
-unimeds = limpar_df(pd.read_csv(url_unimed, dtype=str))
-
+st.write("Beneficiários:", url_beneficiarios)
+st.write("Unimed:", url_unimed)
+try:
+    unimeds = limpar_df(pd.read_csv(url_unimed, dtype=str))
+except Exception as e:
+    st.error(url_unimed)
+    st.exception(e)
+    
 codigo = st.text_input("Digite o código do cliente")
 
 motivos = {
