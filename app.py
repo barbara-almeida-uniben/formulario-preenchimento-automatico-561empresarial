@@ -41,6 +41,18 @@ def limpar_df(df):
 
     return df
 
+def somente_digitos(valor, tamanho=None):
+    valor = "" if pd.isna(valor) else str(valor)
+
+    # Mantém apenas números
+    valor = "".join(filter(str.isdigit, valor))
+
+    # Completa com zeros à esquerda
+    if tamanho:
+        valor = valor.zfill(tamanho)
+
+    return valor
+
 try:
     clientes = limpar_df(pd.read_csv(URL_BENEFICIARIOS, dtype=str))
 except Exception as e:
@@ -174,7 +186,7 @@ if st.button("Gerar PDF"):
         # =============================================
 
         "Texto3": unimed_row['Unimed'],
-        "Texto4": unimed_row['CNPJ'],
+        "Texto4": somente_digitos(unimed_row['CNPJ'], 14),
         "Texto5": unimed_row['ANS'],
 
         # =============================================
@@ -182,21 +194,21 @@ if st.button("Gerar PDF"):
         # =============================================
 
         "Texto42": row['INSTITUICAO'],
-        "Texto43": row['CNPJ_INSTITUICAO'],
+        "Texto43": somente_digitos(row['CNPJ_INSTITUICAO'], 14),
 
         # =============================================
         # EMPRESA ADERENTE
         # =============================================
 
         "Razão Social": row['EMPRESA'],
-        "CNPJ": row['CNPJ'],
+        "CNPJ": somente_digitos(row['CNPJ'], 14),
 
         # =============================================
         # TITULAR
         # =============================================
 
         "Texto7": row['NOME'],
-        "Texto8": row['CPF'],
+        "Texto8": somente_digitos(row['CPF'], 11),
         "Texto9": row['EMAIL'],
 
         "Texto10": row['ENDERECO'],
@@ -207,7 +219,7 @@ if st.button("Gerar PDF"):
 
         "Texto13": row['CIDADE'],
         "UF": row['UF'],
-        "CEP": row['CEP'],
+        "CEP": somente_digitos(row['CEP'], 8),
 
         "DDD  Telefone Celular": row['TELEFONE'],
 
@@ -223,7 +235,7 @@ if st.button("Gerar PDF"):
         # =============================================
 
         "estou ciente das informações acima prestadas e manifesto a minha vontade em": row['NOME'],
-        "undefined_4": row['CPF'],
+        "undefined_4": somente_digitos(row['CPF'], 11),
 
         # =============================================
         # DEPENDENTES
