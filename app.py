@@ -41,16 +41,11 @@ def limpar_df(df):
 
     return df
 
-
-st.write(URL_BENEFICIARIOS)
-
 try:
     clientes = limpar_df(pd.read_csv(URL_BENEFICIARIOS, dtype=str))
 except Exception as e:
     st.exception(e)
     st.stop()
-
-st.write(URL_UNIMED)
 
 try:
     unimeds = limpar_df(pd.read_csv(URL_UNIMED, dtype=str))
