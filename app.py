@@ -16,33 +16,39 @@ st.set_page_config(
 st.title("Gerador de Formulário Unimed")
 
 # =====================================================
-# LER PLANILHAS
+# GOOGLE SHEETS
 # =====================================================
 
-CODIGO_UNIMED = "912196708"
-CODIGO_BENEF = "2120607349"
+BASE_ID = "1LjkHRoSQElthQYiyMzv8vjAtuJDhx6yQ"
 
-clientes = pd.read_excel(
-    "dados.xlsx",
-    sheet_name="Beneficiarios",
-    dtype=str
-).fillna("")
+URL_BENEFICIARIOS = (
+    f"https://docs.google.com/spreadsheets/d/{BASE_ID}"
+    "/export?format=csv&gid=2120607349"
+)
 
-# filtra apenas beneficiários do código correto
-clientes = clientes[
-    clientes["CODIGO_GIT"] == CODIGO_BENEF
-]
+URL_UNIMED = (
+    f"https://docs.google.com/spreadsheets/d/{BASE_ID}"
+    "/export?format=csv&gid=912196708"
+)
 
-unimeds = pd.read_excel(
-    "dados.xlsx",
-    sheet_name="Unimed",
-    dtype=str
-).fillna("")
 
-# filtra apenas a unimed correta
-unimeds = unimeds[
-    unimeds["CODIGO_GIT"] == CODIGO_UNIMED
-]
+def limpar_df(df):
+    df = df.fillna("")
+    df.columns = df.columns.astype(str).str.strip()
+
+    for c in df.columns:
+        df[c] = df[c].astype(str).str.strip()
+
+    return df
+
+
+clientes = limpar_df(
+    pd.read_csv(URL_BENEFICIARIOS, dtype=str)
+)
+
+unimeds = limpar_df(
+    pd.read_csv(URL_UNIMED, dtype=str)
+)
 
 # =====================================================
 # MOTIVOS
