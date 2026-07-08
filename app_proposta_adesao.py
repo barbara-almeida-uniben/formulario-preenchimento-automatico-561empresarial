@@ -499,8 +499,8 @@ def gerar_proposta(
     can.showPage()
     can.showPage()
 
-    can.setFont("Helvetica-Bold", 9)
-    can.drawString(248, 502, formatar_moeda(valor_total))
+    #can.setFont("Helvetica-Bold", 9)
+    #can.drawString(248, 502, formatar_moeda(valor_total))
 
     can.save()
 
